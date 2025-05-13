@@ -1,0 +1,1 @@
+- put IOT devices into separate VLAN or Guest-Network

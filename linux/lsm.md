@@ -1,0 +1,6 @@
+- https://de.wikipedia.org/wiki/Linux_Security_Modules
+- offiziell im Linux-Kernel akzeptierte Module:
+    - AppArmor
+    - SELinux
+    - Smack
+    - TOMOYO

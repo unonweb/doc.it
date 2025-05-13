@@ -1,0 +1,1 @@
+* use certain default ports (port 22) as honey pots. Anyone attempting to connect to those ports is blocked entirely for `x` amount of time.
