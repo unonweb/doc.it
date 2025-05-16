@@ -9,6 +9,15 @@ echo $((no+2)) # 3 --> does not increase the variable itself
 echo $no # 1
 ```
 
+## additions
+
+```bash
+arr=(1,2,3,4,5)
+count=1
+count=$((count + ${#arr[@]}))
+
+echo $count # 6
+```
 # integer comparison
 
 `<` and `>` inside `[[ ... ]]` compare strings, not numbers!

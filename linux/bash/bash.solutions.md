@@ -25,20 +25,23 @@ UNDERLINE="${ESC}[4m"
 GREY="${ESC}[37m"
 ```
 
-# ARGUMENTS & RETURNS
+# ARGS & RETURNS
 
+```bash
+for arg in "${@}"; do echo ${arg}; done
+```
 ## check: no arguments provided
 
 ```sh
 # check if there were no arguments provided:
-if [ $# -eq 0 ]; then
+if [ ${#} -eq 0 ]; then
     >&2 echo "No arguments provided"
     exit 1
 fi
 
 # not a dir
-if [[ ! -d $1 ]]; then
-	echo "$1 is not a directory"
+if [[ ! -d ${1} ]]; then
+	echo "${1} is not a directory"
 	exit
 fi
 ```
@@ -46,18 +49,13 @@ fi
 ## assign default value
 
 ```sh
-# assign default value
-if [[ -z $1 ]]; then
-	echo "assigning default destination: dest='/media/frida/udo_nonner'"
-	dest="/media/frida/udo_nonner"
-else
-    dest=$1    
-fi
+FOO="${x:-default_value}" # If variable not set or null, use default_value. 
+# Important: No assignment to the x variable takes place, and the variable retains its original value.
 
-if [[ -z $2 ]]; then
-	echo "assigning default sitesDir=/home/payload/sites"
-	sitesDir="/home/payload/sites"
-fi
+VARIABLE="${1:-${DEFAULTVALUE}}" # assigns to VARIABLE the value of the 1st argument passed to the script or the value of DEFAULTVALUE if no such argument was passed. Quoting prevents globbing and word splitting.
+
+# The colon builtin (:) ensures the variable result is not executed
+# The double quotes (") prevent globbing and word splitting.
 ```
 
 ## check for existence
@@ -66,7 +64,7 @@ fi
 local ignoreComments=false
 
 # Loop through all arguments
-for arg in "$@"; do
+for arg in "${@}"; do
   if [[ "${arg}" == "--ignore-comments" ]]; then
       echo "readFileToArray(): Ignoring comments"
       ignoreComments=true
@@ -75,6 +73,23 @@ for arg in "$@"; do
 done
 ```
 
+```bash
+# Initialize flags
+ssh_logins=false
+admin_activity=false
+
+# Loop through all command-line arguments
+for arg in "${@}"; do
+    case ${arg} in
+        --ssh-logins)
+            ssh_logins=true
+            ;;
+        --admin-activity)
+            admin_activity=true
+            ;;
+    esac
+done
+```
 ## pass as associative array
 
 ```bash
@@ -110,6 +125,13 @@ createTempDir "/tmp"
 ```
 # ARRAYS
 
+## print key/value
+
+```bash
+for key in ${!CONFIG[@]}; do 
+    echo -e "${key}=${CONFIG[${key}]}"
+done
+```
 ## assign filenames
 
 ```sh
@@ -278,18 +300,18 @@ function isArrayNotEmpty() {
 ## isValueInArray()
 
 ```sh
-function isValueInArray() {
-  # use:
-  # isValueInArray "$value" "${array[@]}"
-  local element="$1" 
-  shift 
-	local array=("$@") 
-  for item in "${array[@]}"; do 
-    if [[ "$item" == "$element" ]]; then 
-      return 0 # Found
-    fi 
-  done 
-  return 1 # Not found 
+function isValueInArray() { # "${value}" "${array[@]}"
+	local element="${1}"
+	shift
+	local array=("${@}")
+
+	for item in "${array[@]}"; do
+		if [[ "${item}" == "${element}" ]]; then
+			return 0 # Found
+		fi
+	done
+	
+	return 1 # Not found
 }
 ```
 
@@ -667,30 +689,35 @@ function readFileToArray() {
 ## readFileToMap()
 
 ```bash
-function readFileToMap() { # MAP ${pathFile} 
-  local -n _result=${1} # map
-  local filePath=${2}
+function readFileToMap() { # result ${filePath} ${separator}
+	# Reads the contents of a file and separates them by "=" 
+	# or another given separator
+	# Stores the results as key-value-pairs into a map
 
-  while IFS='=' read -r key value; do
-    # ignore if comment
-    if [[ "${key}" == \#* ]]; then
-      continue
-    fi
-    # trim whitespace from key and value
-    key="${key#"${key%%[![:space:]]*}"}"  # Trim leading whitespace
-    key="${key%"${key##*[![:space:]]}"}"  # Trim trailing whitespace
-    value="${value#"${value%%[![:space:]]*}"}"  # Trim leading whitespace
-    value="${value%"${value##*[![:space:]]}"}"  # Trim trailing whitespace
-    # add to result
-    _result["$key"]="${value}"
-  done < ${filePath}
+	local -n result=${1}
+	local filePath=${2}
+	local separator=${3:-"="}
+	local ignoreComments=true
 
-  if [[ ${#_result[@]} -eq 0 ]]; then
-    echo "ERROR: Nothing read from file ${GREEN}${filePath}${RESET}"
-    return 1
-  else
-    return 0
-  fi
+	if [[ ! -e "${filePath}" ]]; then
+		echo -e "${RED}ERROR: File not found: ${filePath}${RESET}"
+		return 1
+  	fi
+
+	# Read the file line by line
+	while IFS="${separator}" read -r key value; do
+		if [[ ${ignoreComments} == true ]] && [[ "${key}" == \#* ]]; then
+        	continue
+		fi
+		# Trim leading and trailing whitespace from key and value
+		key="${key#"${key%%[![:space:]]*}"}"  # Trim leading whitespace
+		key="${key%"${key##*[![:space:]]}"}"  # Trim trailing whitespace
+		value="${value#"${value%%[![:space:]]*}"}"  # Trim leading whitespace
+		value="${value%"${value##*[![:space:]]}"}"  # Trim trailing whitespace
+
+		# Store the key-value pair in the associative array
+		result["${key}"]="${value}"
+	done <"${filePath}"
 }
 ```
 
@@ -773,13 +800,13 @@ fi
 
 ```sh
 function log() {
-  local message="$1"
-  local type="$2"
+  local message="${1}"
+  local type="${2}"
   local timestamp=$(date '+%Y-%m-%d %H:%M:%S')
   local color
   local endcolor="\033[0m"
 
-  case "$type" in
+  case "${type}" in
     "info") color="\033[38;5;79m" ;;
     "success") color="\033[1;32m" ;;
     "error") color="\033[1;31m" ;;
